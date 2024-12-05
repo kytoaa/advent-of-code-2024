@@ -1,5 +1,6 @@
 // this code is very messy D:
 
+#[allow(dead_code)]
 pub fn run(mut dir: String) {
     dir.push_str("/day3.txt");
     println!("{}", dir);
