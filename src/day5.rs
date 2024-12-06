@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn run(mut dir: String) {
     dir.push_str("/day5.txt");
     println!("{}", dir);
@@ -76,6 +77,7 @@ fn in_order<'a>(update: &Update, rules: &'a Vec<Rule>) -> Option<&'a Rule> {
     None
 }
 
+#[allow(dead_code)]
 fn fix_update(mut update: Update, bad_rule: &Rule) -> u32 {
     let num0_index = update
         .iter()

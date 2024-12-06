@@ -16,7 +16,7 @@ enum Instruction {
     Dont,
 }
 
-pub fn solve(data: &str) -> u32 {
+fn solve(data: &str) -> u32 {
     let mut total = 0;
 
     let mut data = data.chars().peekable();
