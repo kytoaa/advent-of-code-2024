@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn run(mut dir: String) {
     dir.push_str("/day7.txt");
     println!("{}", dir);
@@ -7,7 +8,7 @@ pub fn run(mut dir: String) {
     println!("{}", result);
 }
 
-pub fn solve(data: &str) -> u64 {
+fn solve(data: &str) -> u64 {
     let equations = parse_equations(data);
 
     equations
