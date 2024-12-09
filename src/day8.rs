@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+#[allow(dead_code)]
 pub fn run(mut dir: String) {
     dir.push_str("/day8.txt");
     println!("{}", dir);
