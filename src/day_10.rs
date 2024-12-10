@@ -10,7 +10,7 @@ pub fn run(mut dir: String) {
 fn solve(data: &str) -> u32 {
     heightmap_to_paths(&parse_heightmap(data))
         .into_iter()
-        .map(|path| path.score(std::rc::Rc::new(std::cell::RefCell::new(vec![]))))
+        .map(|path| path.score())
         .sum()
 }
 
@@ -37,7 +37,6 @@ type Height = i32;
 #[derive(Debug)]
 struct PathNode {
     height: Height,
-    position: (isize, isize),
     left: Option<Box<PathNode>>,
     right: Option<Box<PathNode>>,
     up: Option<Box<PathNode>>,
@@ -71,7 +70,6 @@ impl PathNode {
 
         Some(Box::new(PathNode {
             height,
-            position: pos,
             left: PathNode::extend(map, (pos.0 - 1, pos.1), Some(height)),
             right: PathNode::extend(map, (pos.0 + 1, pos.1), Some(height)),
             up: PathNode::extend(map, (pos.0, pos.1 - 1), Some(height)),
@@ -79,34 +77,14 @@ impl PathNode {
         }))
     }
     // not a fan of the rc refcell but its the easiest way to do this without more major changes
-    fn score(&self, found: std::rc::Rc<std::cell::RefCell<Vec<(isize, isize)>>>) -> u32 {
+    fn score(&self) -> u32 {
         if self.height == 9 {
-            if found.borrow_mut().contains(&self.position) {
-                0
-            } else {
-                found.borrow_mut().push(self.position);
-                1
-            }
+            1
         } else {
-            self.left
-                .as_ref()
-                .map(|p| p.score(found.clone()))
-                .unwrap_or(0)
-                + self
-                    .right
-                    .as_ref()
-                    .map(|p| p.score(found.clone()))
-                    .unwrap_or(0)
-                + self
-                    .up
-                    .as_ref()
-                    .map(|p| p.score(found.clone()))
-                    .unwrap_or(0)
-                + self
-                    .down
-                    .as_ref()
-                    .map(|p| p.score(found.clone()))
-                    .unwrap_or(0)
+            self.left.as_ref().map(|p| p.score()).unwrap_or(0)
+                + self.right.as_ref().map(|p| p.score()).unwrap_or(0)
+                + self.up.as_ref().map(|p| p.score()).unwrap_or(0)
+                + self.down.as_ref().map(|p| p.score()).unwrap_or(0)
         }
     }
 }
@@ -138,7 +116,7 @@ mod tests {
 01329801
 10456732";
 
-        assert_eq!(solve(example), 36);
+        assert_eq!(solve(example), 81);
     }
 
     #[test]
