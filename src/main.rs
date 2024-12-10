@@ -7,6 +7,7 @@ mod day6;
 mod day7;
 mod day8;
 mod day9;
+mod day_10;
 
 fn main() {
     let dir = String::from(match std::env::var("AOC_2024_INPUTS") {
@@ -19,5 +20,5 @@ fn main() {
             return;
         }
     });
-    day9::run(dir);
+    day_10::run(dir);
 }
