@@ -15,59 +15,158 @@ fn solve(data: &str) -> u64 {
     checksum(&file_system)
 }
 
+#[derive(Debug, PartialEq)]
+enum File {
+    File(FileID, usize),
+    Empty(usize),
+}
+impl File {
+    fn size(&self) -> usize {
+        match self {
+            File::File(_, s) => *s,
+            File::Empty(s) => *s,
+        }
+    }
+    fn is_file(&self) -> bool {
+        match self {
+            File::File(_, _) => true,
+            File::Empty(_) => false,
+        }
+    }
+}
 type FileID = u64;
-type FileSystem = Vec<Option<FileID>>;
+type FileSystem = Vec<File>;
 
 fn checksum(file_system: &FileSystem) -> u64 {
-    file_system
-        .iter()
-        .enumerate()
-        .filter_map(|(i, o)| o.map(|id| id * i as u64))
-        .sum()
+    let mut i = 0;
+    let mut total = 0;
+    for file in file_system {
+        total += match file {
+            File::File(id, size) => {
+                let mut n = 0;
+                for j in 0..(*size) {
+                    n += (i + j as u64) * *id;
+                }
+                n
+            }
+            File::Empty(_) => 0,
+        };
+        i += file.size() as u64;
+    }
+    total
 }
 
 fn defragment_file_system(file_system: &mut FileSystem) {
-    let empty_count = file_system.iter().filter(|f| f == &&None).count();
+    let mut checked = vec![];
+    loop {
+        let (mut next_file_index, next_file_size) = {
+            let next = match file_system
+                .iter()
+                .enumerate()
+                .filter(|file| match file {
+                    (_, File::File(_, _)) => true,
+                    (_, File::Empty(_)) => false,
+                })
+                .rev()
+                .filter(|(_, file)| match file {
+                    File::File(id, _) => !checked.contains(id),
+                    File::Empty(_) => panic!(),
+                })
+                .next()
+            {
+                Some(n) => n,
+                None => break,
+            };
 
-    let mut end_full = file_system.len() - 1;
-    let mut start_empty = 0;
+            (
+                next.0,
+                *match next.1 {
+                    File::File(id, i) => {
+                        checked.push(*id);
+                        i
+                    }
+                    File::Empty(_) => panic!(),
+                },
+            )
+        };
+        let (space_index, space_size) = match file_system.iter().enumerate().find(|(_, file)| {
+            if let File::Empty(size) = file {
+                *size >= next_file_size
+            } else {
+                false
+            }
+        }) {
+            Some((i, file)) => (
+                i,
+                if let File::Empty(size) = file {
+                    size
+                } else {
+                    panic!()
+                },
+            ),
+            None => continue,
+        };
 
-    for _ in 0..empty_count {
-        loop {
-            if file_system[start_empty].is_none() {
-                break;
+        if space_index >= next_file_index {
+            continue;
+        }
+
+        let size_difference = space_size - next_file_size;
+
+        {
+            let file = file_system.remove(next_file_index);
+            file_system.insert(space_index, file);
+        }
+        let space_removed = file_system.remove(space_index + 1).size();
+
+        if size_difference != 0 {
+            if let Some(File::Empty(size)) = file_system.get_mut(space_index + 1) {
+                *size += size_difference;
+            } else {
+                file_system.insert(space_index + 1, File::Empty(size_difference));
+                next_file_index += 1;
             }
-            start_empty += 1;
         }
-        loop {
-            if file_system[end_full].is_some() {
-                break;
+
+        let empty_next_size = file_system
+            .get(next_file_index)
+            .filter(|f| !f.is_file())
+            .map(|f| f.size());
+
+        if let Some(File::Empty(size)) = file_system.get_mut(next_file_index - 1) {
+            *size += space_removed - size_difference;
+
+            if empty_next_size.is_some() {
+                *size += empty_next_size.unwrap();
+                _ = file_system.remove(next_file_index);
             }
-            end_full -= 1;
+        } else if let Some(File::Empty(size)) = file_system.get_mut(next_file_index) {
+            *size += space_removed - size_difference;
+        } else {
+            file_system.insert(
+                next_file_index,
+                File::Empty(space_removed - size_difference),
+            );
         }
-        if end_full <= start_empty {
-            break;
-        }
-        file_system.swap(start_empty, end_full);
     }
 }
 
 fn parse_file_system(data: &str) -> FileSystem {
     let mut file_system = vec![];
     let mut file_id = 0;
+
     data.trim().chars().enumerate().for_each(|(i, c)| {
         if i % 2 == 0 {
-            for _ in 0..c.to_digit(10).unwrap() {
-                file_system.push(Some(file_id));
-            }
+            file_system.push(File::File(file_id, c.to_digit(10).unwrap() as usize));
             file_id += 1;
         } else {
-            for _ in 0..c.to_digit(10).unwrap() {
-                file_system.push(None);
-            }
+            file_system.push(File::Empty(c.to_digit(10).unwrap() as usize));
         }
     });
     file_system
+        .into_iter()
+        .filter(|file| file.size() != 0)
+        .collect()
 }
 
 #[cfg(test)]
@@ -81,102 +180,11 @@ mod tests {
         assert_eq!(
             parse_file_system(example),
             vec![
-                Some(0),
-                None,
-                None,
-                Some(1),
-                Some(1),
-                Some(1),
-                None,
-                None,
-                None,
-                None,
-                Some(2),
-                Some(2),
-                Some(2),
-                Some(2),
-                Some(2)
-            ]
-        );
-    }
-    #[test]
-    fn defragment_file_example_test() {
-        let mut example = parse_file_system("12345");
-
-        defragment_file_system(&mut example);
-
-        assert_eq!(
-            example,
-            vec![
-                Some(0),
-                Some(2),
-                Some(2),
-                Some(1),
-                Some(1),
-                Some(1),
-                Some(2),
-                Some(2),
-                Some(2),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ]
-        );
-    }
-    #[test]
-    fn defragment_file_long_example_test() {
-        let mut example = parse_file_system("2333133121414131402");
-
-        defragment_file_system(&mut example);
-
-        assert_eq!(
-            example,
-            vec![
-                Some(0),
-                Some(0),
-                Some(9),
-                Some(9),
-                Some(8),
-                Some(1),
-                Some(1),
-                Some(1),
-                Some(8),
-                Some(8),
-                Some(8),
-                Some(2),
-                Some(7),
-                Some(7),
-                Some(7),
-                Some(3),
-                Some(3),
-                Some(3),
-                Some(6),
-                Some(4),
-                Some(4),
-                Some(6),
-                Some(5),
-                Some(5),
-                Some(5),
-                Some(5),
-                Some(6),
-                Some(6),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
+                File::File(0, 1),
+                File::Empty(2),
+                File::File(1, 3),
+                File::Empty(4),
+                File::File(2, 5),
             ]
         );
     }
@@ -187,6 +195,52 @@ mod tests {
 
         defragment_file_system(&mut example);
 
-        assert_eq!(checksum(&example), 1928);
+        assert_eq!(checksum(&example), 2858);
+    }
+
+    #[test]
+    fn short_example_test() {
+        let mut files = parse_file_system("13254");
+
+        defragment_file_system(&mut files);
+
+        // 0...11.....2222
+        // 0...112222.....
+        // 011...2222.....
+        assert_eq!(
+            files,
+            vec![
+                File::File(0, 1),
+                File::File(1, 2),
+                File::Empty(3),
+                File::File(2, 4),
+                File::Empty(5),
+            ]
+        );
+        assert_eq!(
+            checksum(&files),
+            (1 * 1) + (2 * 1) + (6 * 2) + (7 * 2) + (8 * 2) + (9 * 2)
+        );
+    }
+
+    #[test]
+    fn edgecase_test() {
+        // 0..1....22..3333
+        // 0..1333322......
+        // 02213333........
+        let mut files = parse_file_system("1214224");
+
+        defragment_file_system(&mut files);
+
+        assert_eq!(
+            files,
+            vec![
+                File::File(0, 1),
+                File::File(2, 2),
+                File::File(1, 1),
+                File::File(3, 4),
+                File::Empty(8)
+            ]
+        );
     }
 }
