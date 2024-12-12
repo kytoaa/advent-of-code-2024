@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub fn run(mut dir: String) {
     dir.push_str("/day_11.txt");
     println!("{}", dir);
@@ -8,33 +10,25 @@ pub fn run(mut dir: String) {
 }
 
 fn solve(data: &str) -> usize {
-    let mut stones = parse_stones(data);
+    let stones = parse_stones(data);
 
-    for _ in 0..25 {
-        stones = step(stones);
+    let mut stone_counts = HashMap::new();
+    for stone in stones {
+        stone_counts.insert(stone, 1);
     }
 
-    stones.len()
-}
+    for _ in 0..75 {
+        let mut new_stone_counts = HashMap::new();
 
-type Stone = u64;
-
-fn step(stones: Vec<Stone>) -> Vec<Stone> {
-    stones
-        .into_iter()
-        .map(|stone| {
+        for (stone, count) in stone_counts
+            .iter()
+            .map(|(k, v)| (*k, *v))
+            .collect::<Vec<(Stone, usize)>>()
+        {
             let digits = stone.to_string();
-            if digits.chars().next().unwrap() == '0' {
-                vec![digits
-                    .chars()
-                    .map(|c| match c {
-                        '0' => '1',
-                        c => c,
-                    })
-                    .collect::<String>()
-                    .parse::<Stone>()
-                    .unwrap()]
-                .into_iter()
+
+            for n in if stone == 0 {
+                vec![1].into_iter()
             } else if digits.len() % 2 == 0 {
                 vec![
                     digits[..(digits.len() / 2)].parse::<Stone>().unwrap(),
@@ -43,11 +37,20 @@ fn step(stones: Vec<Stone>) -> Vec<Stone> {
                 .into_iter()
             } else {
                 vec![stone * 2024].into_iter()
+            } {
+                match new_stone_counts.get_mut(&n) {
+                    Some(c) => *c += count,
+                    None => _ = new_stone_counts.insert(n, count),
+                }
             }
-        })
-        .flatten()
-        .collect()
+        }
+        stone_counts = new_stone_counts;
+    }
+
+    stone_counts.values().sum()
 }
+
+type Stone = u64;
 
 fn parse_stones(data: &str) -> Vec<Stone> {
     data.trim()
@@ -58,19 +61,6 @@ fn parse_stones(data: &str) -> Vec<Stone> {
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
-
-    #[test]
-    fn step_test() {
-        let stones = vec![0, 1, 10, 99, 999];
-
-        assert_eq!(step(stones), vec![1, 2024, 1, 0, 9, 9, 2021976])
-    }
-
-    #[test]
-    fn example_test() {
-        let example = "125 17";
-
-        assert_eq!(solve(example), 55312);
-    }
 }
