@@ -5,6 +5,44 @@ pub fn run(mut dir: String) {
 
     let result = solve(&data, Vector::new(101, 103));
     println!("{result}");
+
+    manual_easter_egg_search(&data, Vector::new(101, 103));
+}
+
+fn manual_easter_egg_search(data: &str, space_size: Vector) {
+    let robots = parse_robots(data);
+    let mut space = Space::new(space_size, robots).unwrap();
+
+    println!("[end] to end, digit to step n times");
+    let mut i = 0;
+
+    const DEDUP_MANUAL_CHECK_THRESHOLD: usize = 100;
+
+    // not very efficient solution but i dont care much as im trying to catch up to the current day
+    loop {
+        let displayed = space.display();
+        let mut v: Vec<char> = displayed.chars().collect();
+        v.dedup();
+
+        if displayed.len() - v.len() < DEDUP_MANUAL_CHECK_THRESHOLD {
+            space.step();
+            i += 1;
+            continue;
+        }
+
+        println!("{}\n{i}", displayed);
+        let mut buffer = String::new();
+        std::io::stdin().read_line(&mut buffer).unwrap();
+
+        if buffer.trim() == "end" {
+            break;
+        }
+
+        for _ in 0..buffer.trim().parse::<usize>().unwrap_or(1) {
+            space.step();
+            i += 1;
+        }
+    }
 }
 
 fn solve(data: &str, space_size: Vector) -> u64 {
@@ -57,6 +95,31 @@ impl Space {
                 n
             })
             .product()
+    }
+    fn display(&self) -> String {
+        let mut string = String::with_capacity((self.size.x * self.size.y) as usize);
+
+        for y in 0..self.size.y {
+            for x in 0..self.size.x {
+                string.push(
+                    match self
+                        .robots
+                        .iter()
+                        .find(|robot| robot.position_within_space(&self.size) == Vector::new(x, y))
+                        .is_some()
+                    {
+                        false => match x % 2 == 0 {
+                            true => '.',
+                            false => '_',
+                        },
+                        true => 'X',
+                    },
+                );
+            }
+            string.push('\n');
+        }
+
+        string
     }
 }
 
