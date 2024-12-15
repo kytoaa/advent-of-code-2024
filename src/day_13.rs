@@ -79,7 +79,7 @@ fn parse_claw_machines(data: &str) -> Vec<ClawMachine> {
         claw_machines.push(ClawMachine {
             a: Vector::new(button_a.0, button_a.1),
             b: Vector::new(button_b.0, button_b.1),
-            prize: Vector::new(coords.0, coords.1),
+            prize: Vector::new(coords.0 + 10000000000000, coords.1 + 10000000000000),
         });
     }
 
@@ -152,35 +152,14 @@ Prize: X=12748, Y=12176";
                 ClawMachine {
                     a: Vector::new(94, 34),
                     b: Vector::new(22, 67),
-                    prize: Vector::new(8400, 5400),
+                    prize: Vector::new(10000000008400, 10000000005400),
                 },
                 ClawMachine {
                     a: Vector::new(26, 66),
                     b: Vector::new(67, 21),
-                    prize: Vector::new(12748, 12176),
+                    prize: Vector::new(10000000012748, 10000000012176),
                 },
             ]
         );
-    }
-
-    #[test]
-    fn example_test() {
-        let machines = "Button A: X+94, Y+34
-Button B: X+22, Y+67
-Prize: X=8400, Y=5400
-
-Button A: X+26, Y+66
-Button B: X+67, Y+21
-Prize: X=12748, Y=12176
-
-Button A: X+17, Y+86
-Button B: X+84, Y+37
-Prize: X=7870, Y=6450
-
-Button A: X+69, Y+23
-Button B: X+27, Y+71
-Prize: X=18641, Y=10279";
-
-        assert_eq!(solve(machines), 480);
     }
 }
