@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn run(mut dir: String) {
     dir.push_str("/day_14.txt");
     println!("{}", dir);
